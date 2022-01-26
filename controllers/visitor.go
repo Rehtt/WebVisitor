@@ -16,6 +16,9 @@ func GetVisitorInfo(ctx *gin.Context) {
 	info := &mysql.Visitor{}
 	ip, _ := ctx.RemoteIP()
 	info.IP = ip.String()
+	if ctx.GetString("X-Real-IP") != "" {
+		info.IP = ctx.GetHeader("X-Real-IP")
+	}
 	if ctx.GetHeader("X-Forwarded-For") != "" {
 		info.IP = ctx.GetHeader("X-Forwarded-For")
 	}
