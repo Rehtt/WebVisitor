@@ -44,10 +44,12 @@ func VisitorInfo(info *mysql.Visitor) int64 {
 		visitor.Province = ipinfo.Region
 		visitor.City = ipinfo.City
 		visitor.ISP = ipinfo.ISP
+		visitor.Host = info.Host
 	}
 	mysql.DBUpdate(&visitor).Save()
 	frequency++
 
+	visitorMap[info.IP] = time.Now()
 	return frequency
 }
 

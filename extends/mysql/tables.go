@@ -17,4 +17,5 @@ type Visitor struct {
 	ISP       string `json:"isp"`
 	UserAgent string `json:"user_agent"`
 	Frequency int64  `json:"frequency"` // 访问次数
+	Host      string `json:"host"`
 }
