@@ -23,7 +23,7 @@ func GetVisitorInfo(ctx *gin.Context) {
 		info.IP = ctx.GetHeader("X-Forwarded-For")
 	}
 	info.UserAgent = ctx.GetHeader("User-Agent")
-	info.Host = ctx.GetHeader("Host")
+	info.Host = ctx.Request.Host
 	frequency := models.VisitorInfo(info)
 	ctx.Writer.WriteString(fmt.Sprintf("%d", frequency))
 }
