@@ -36,7 +36,7 @@ func GetStatistics(startTime, endTime *time.Time) []byte {
 		Name    string    `json:"name"`
 		Version string    `json:"version"`
 		Device  struct {
-			Name string     `json:"name"`
+			Name string     `json:"name,omitempty"`
 			Bot  *botStruct `json:"bot,omitempty"`
 			OS   *osStruct  `json:"os,omitempty"`
 		} `json:"device"`
