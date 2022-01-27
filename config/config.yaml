@@ -18,3 +18,5 @@ server:
 # https://market.aliyun.com/products/57002003/cmapi021970.html
 ipinfo:
   authorization: ""
+
+authorize: ""

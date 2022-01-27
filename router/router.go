@@ -2,6 +2,7 @@ package router
 
 import (
 	"WebVisitor/controllers"
+	"WebVisitor/router/middleware"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -18,8 +19,10 @@ func LoadRouter(g *gin.Engine, mw ...gin.HandlerFunc) *gin.Engine {
 	api := g.Group("/api")
 	apiV1 := api.Group("/v1")
 	{
-		apiV1.GET("/", controllers.TestV1)
+		apiV1.Use(middleware.Authorize)
+		apiV1.GET("/statistics", controllers.GetStatistics)
 	}
 	g.GET("/visitor", controllers.GetVisitorInfo)
+
 	return g
 }
