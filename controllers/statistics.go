@@ -15,5 +15,5 @@ func GetStatistics(ctx *gin.Context) {
 	startTime, _ := time.Parse("2006-01-02T15:04:05Z", ctx.Query("sTime"))
 	endTime, _ := time.Parse("2006-01-02T15:04:05Z", ctx.Query("eTime"))
 	out := models.GetStatistics(&startTime, &endTime)
-	ctx.Writer.WriteString(out)
+	ctx.Writer.Write(out)
 }
