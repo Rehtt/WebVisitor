@@ -23,20 +23,22 @@ func GetStatistics(startTime, endTime *time.Time) []byte {
 	var data []mysql.Visitor
 	query.Find(&data)
 
+	type botStruct struct {
+		URL string `json:"url"`
+	}
+	type osStruct struct {
+		Name    string `json:"name"`
+		Version string `json:"version"`
+	}
 	type outStruct struct {
 		mysql.Visitor
 		Last    time.Time `json:"last"`
 		Name    string    `json:"name"`
 		Version string    `json:"version"`
 		Device  struct {
-			Name string `json:"name"`
-			Bot  struct {
-				URL string `json:"url"`
-			} `json:"bot,omitempty"`
-			OS struct {
-				Name    string `json:"name"`
-				Version string `json:"version"`
-			} `json:"os,omitempty"`
+			Name string     `json:"name"`
+			Bot  *botStruct `json:"bot,omitempty"`
+			OS   *osStruct  `json:"os,omitempty"`
 		} `json:"device"`
 	}
 
@@ -51,10 +53,12 @@ func GetStatistics(startTime, endTime *time.Time) []byte {
 		d.Name = ua.Name
 		d.Version = ua.Version
 		if ua.Bot {
-			d.Device.Bot.URL = ua.URL
+			d.Device.Bot = &botStruct{URL: ua.URL}
 		} else {
-			d.Device.OS.Name = ua.OS
-			d.Device.OS.Version = ua.OSVersion
+			d.Device.OS = &osStruct{
+				Name:    ua.OS,
+				Version: ua.OSVersion,
+			}
 			d.Device.Name = ua.Device
 		}
 		out = append(out, d)
