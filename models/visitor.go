@@ -10,32 +10,38 @@ import (
 	"WebVisitor/extends/mysql"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 )
 
-var visitorMap = map[string]time.Time{}
-var frequency int64
+var visitorMap = sync.Map{}
 var timeout = 5 * time.Minute
 var cleanTime = 10 * time.Minute
-var vInit = false
+
+type visitorStruct struct {
+	visitor   *sync.Map
+	frequency int64
+}
 
 func VisitorInfo(info *mysql.Visitor) int64 {
-	if !vInit {
-		visitorInit()
-	}
 	now := time.Now()
-	if v, ok := visitorMap[info.IP]; ok && now.Sub(v) < timeout {
-		return frequency
+	visitorMapPtr, _ := visitorMap.LoadOrStore(info.Host, visitorInit(info.Host))
+
+	frequency := visitorMapPtr.(*visitorStruct).frequency
+	if mm, ook := visitorMapPtr.(*visitorStruct).visitor.Load(info.IP); ook {
+		if now.Sub(mm.(time.Time)) < timeout {
+			return frequency
+		}
 	}
 
 	var visitor mysql.Visitor
-	mysql.DBQuery(&visitor, map[string]interface{}{"ip": info.IP}).GetContent()
+	mysql.DBQuery(&visitor, map[string]interface{}{"ip": info.IP, "host": info.Host}).GetContent()
 	visitor.Frequency++
 	if visitor.Model == nil {
 		ipinfo, err := ip.IP.GetIpInfo(info.IP)
 		if err != nil {
 			log.Println(err)
-			return frequency
+			//return frequency
 		}
 		visitor.IP = info.IP
 		visitor.UserAgent = info.UserAgent
@@ -48,22 +54,28 @@ func VisitorInfo(info *mysql.Visitor) int64 {
 	}
 	mysql.DBUpdate(&visitor).Save()
 	frequency++
-
-	visitorMap[info.IP] = time.Now()
+	visitorMapPtr.(*visitorStruct).visitor.Store(info.IP, now)
+	visitorMapPtr.(*visitorStruct).frequency = frequency
 	return frequency
 }
 
-func visitorInit() {
+func visitorInit(host string) *visitorStruct {
+	visitor := &visitorStruct{
+		visitor:   &sync.Map{},
+		frequency: 0,
+	}
 	// 获取总访问量
-	mysql.DB.Self.Model(&mysql.Visitor{}).Select("coalesce(sum(frequency),0) as frequency").Find(&frequency)
+	mysql.DB.Self.Model(&mysql.Visitor{}).Where(map[string]interface{}{"host": host}).Select("coalesce(sum(frequency),0) as frequency").Find(&visitor.frequency)
 
 	// 获取最近访问者
 	var visitors []mysql.Visitor
 	mysql.DBQuery(&visitors, fmt.Sprintf("updated_at > '%s'", time.Now().Add(-timeout).Format("2006-01-02 15:04:05")))
 	for _, v := range visitors {
-		visitorMap[v.IP] = v.UpdatedAt
+		visitor.visitor.Store(v.IP, v.UpdatedAt)
 	}
-
+	return visitor
+}
+func init() {
 	// 定时清除
 	go func() {
 		t := time.NewTicker(cleanTime)
@@ -72,12 +84,16 @@ func visitorInit() {
 			cleanVisitorMap()
 		}
 	}()
-	vInit = true
 }
 func cleanVisitorMap() {
-	for k, v := range visitorMap {
-		if time.Now().Sub(v) > timeout {
-			delete(visitorMap, k)
-		}
-	}
+	now := time.Now()
+	visitorMap.Range(func(key, value interface{}) bool {
+		value.(*visitorStruct).visitor.Range(func(k, v interface{}) bool {
+			if now.Sub(v.(time.Time)) > timeout {
+				value.(*visitorStruct).visitor.Delete(k)
+			}
+			return true
+		})
+		return true
+	})
 }

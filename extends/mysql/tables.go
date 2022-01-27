@@ -1,6 +1,6 @@
 package mysql
 
-import "github.com/jinzhu/gorm"
+import "gorm.io/gorm"
 
 type UserTables struct {
 	*gorm.Model
